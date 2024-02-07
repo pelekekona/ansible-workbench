@@ -25,7 +25,7 @@ python_version = "3.10"
 Die packages **passlib** und **ansible** in **Pipfile** werden explizit installiert:
 
 ```shell
-$ pipenv install
+andy@mars:~/git/ansible-workbench$ pipenv install
 ```
 
 ### Docker
@@ -39,6 +39,12 @@ Starting galaxy role install process
 - downloading role from https://github.com/geerlingguy/ansible-role-docker/archive/7.1.0.tar.gz
 - extracting geerlingguy.docker to /home/andy/.ansible/roles/geerlingguy.docker
 - geerlingguy.docker (7.1.0) was installed successfully
+```
+
+Symbolischen Link anlegen, um die Konfigurationsdateien in der IDE im Zugriff zu haben. Der Link sollte anschließend der Datei **.gitignore** hinzugefügt werden, um ihn von der Synchronisation mit dem Repository auszuschließen.
+
+```shell
+andy@mars:~/git/ansible-workbench$ ln -s ~/.ansible/ .ansible
 ```
 
 ## Konfigurationen anpassen
@@ -102,7 +108,7 @@ docker_users: [andy]
 Bei der erstmaligen initialen Installation ist die passwortlose Anmeldung per SSH nicht möglich, da der öffentliche SSH-Schlüssel noch nicht hinterlegt wurde.
 
 ```shell
-pipenv run ansible-playbook initial-setup.yml -i hosts --ask-pass --ask-become-pass
+andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook initial-setup.yml -i hosts --ask-pass --ask-become-pass
 ```
 
 ### [Rolle: system](roles/system)
@@ -145,17 +151,43 @@ CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
 
 ### Rolle: [compose_hull](roles/compose_hull)
 
-## Playbook: [system-setup](system-setup.yml)
+## Playbooks
+
+### Rolle: [system-setup](system-setup.yml)
+
+Hier werden die Servicerollen nacheinander aufgerufen, was leider zur Zeit nicht funktioniert:
+
+```yaml
+- hosts: server
+  become: true
+  roles:
+    - system
+    - geerlingguy.docker
+    - role: traefik
+      vars:
+        service_cfg: "{{ traefik }}"
+    - role: watchtower
+      vars:
+        service_cfg: "{{ watchtower }}"
+    - role: autoheal
+      vars:
+        service_cfg: "{{ autoheal }}"
+    - role: portainer
+      vars:
+        service_cfg: "{{ portainer }}"
+```
 
 ### Aufruf
 
 ```shell
-$ pipenv run ansible-playbook system-setup.yml -i hosts
+andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook system-setup.yml -i hosts
 ```
+
+Werden die Rollen einzeln gestartet, kommt es zu keinen Fehlermeldungen, hier als Beispiel die Rolle für Traefik selbst:
 
 ### Rolle [traefik.yml](traefik.yml)
 
-```shell
+```yaml
 - hosts: server
   become: true
   roles:
@@ -164,22 +196,22 @@ $ pipenv run ansible-playbook system-setup.yml -i hosts
         service_cfg: "{{ traefik }}"
 ```
 
-## Services über Ansible starten
+## Services einzeln über Ansible starten
 
 ```shell
-$ pipenv run ansible-playbook traefik.yml -i hosts
-$ pipenv run ansible-playbook watchtower.yml -i hosts
-$ pipenv run ansible-playbook autoheal.yml -i hosts
-$ pipenv run ansible-playbook portainer.yml -i hosts
+andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook traefik.yml -i hosts
+andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook watchtower.yml -i hosts
+andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook autoheal.yml -i hosts
+andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook portainer.yml -i hosts
 ```
 
 ## Services auf dem Host starten
 
-Falls der Start der Services über Ansible noch nicht funktioniert, aber die Docker-Konfiguration auf dem Raspberry Pi bereits angelegt ist, können die Services auf dem Host auch manuell gestartet werden:
+Alternativ dazu können die Services auch direkt auf dem Host gestartet werden. Da für jeden Service eine eigene Docker-Compose-Datei generiert wurde, muss auch jeder Service für sich gestartet werden.
 
 ```shell
-$ andy@raspberrypi:/docker $ docker compose -f traefik/docker-compose.yml up
-$ andy@raspberrypi:/docker $ docker compose -f watchtower/docker-compose.yml up
-$ andy@raspberrypi:/docker $ docker compose -f autoheal/docker-compose.yml up
-$ andy@raspberrypi:/docker $ docker compose -f portainer/docker-compose.yml up
+andy@raspberrypi:/docker $ docker compose -f traefik/docker-compose.yml up
+andy@raspberrypi:/docker $ docker compose -f watchtower/docker-compose.yml up
+andy@raspberrypi:/docker $ docker compose -f autoheal/docker-compose.yml up
+andy@raspberrypi:/docker $ docker compose -f portainer/docker-compose.yml up
 ```
