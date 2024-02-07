@@ -19,7 +19,7 @@ ansible = "*"
 [dev-packages]
 
 [requires]
-python_version = "3.11"
+python_version = "3.10"
 ```
 
 Die packages **passlib** und **ansible** in **Pipfile** werden explizit installiert:
