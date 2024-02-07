@@ -1,3 +1,28 @@
+- [Ansible-Tutorial](#ansible-tutorial)
+  - [Installationen](#installationen)
+    - [Pipfile](#pipfile)
+    - [Docker](#docker)
+  - [Inventory anpassen](#inventory-anpassen)
+    - [hosts](#hosts)
+    - [host\_vars/raspberrypi.yml](#host_varsraspberrypiyml)
+  - [Inventory testen](#inventory-testen)
+  - [Konfiguration der Docker-Rolle anpassen](#konfiguration-der-docker-rolle-anpassen)
+    - [~/.ansible/roles/geerlingguy.docker/defaults/main.yml:](#ansiblerolesgeerlingguydockerdefaultsmainyml)
+  - [Playbooks](#playbooks)
+    - [initial-setup.yml](#initial-setupyml)
+      - [Aufruf](#aufruf)
+      - [Rolle: system](#rolle-system)
+      - [Rolle: docker](#rolle-docker)
+      - [Rolle: compose\_hull](#rolle-compose_hull)
+    - [system-setup](#system-setup)
+      - [Aufruf](#aufruf-1)
+    - [traefik.yml](#traefikyml)
+    - [watchtower.yml](#watchtoweryml)
+    - [autoheal.yml](#autohealyml)
+    - [portainer.yml](#portaineryml)
+    - [Services einzeln über Ansible starten](#services-einzeln-über-ansible-starten)
+  - [Services auf dem Host starten](#services-auf-dem-host-starten)
+
 # Ansible-Tutorial
 
 ## Installationen
@@ -47,9 +72,9 @@ Symbolischen Link anlegen, um die Konfigurationsdateien in der IDE im Zugriff zu
 andy@mars:~/git/ansible-workbench$ ln -s ~/.ansible/ .ansible
 ```
 
-## Konfigurationen anpassen
+## Inventory anpassen
 
-## [hosts](hosts)
+### [hosts](hosts)
 
 In der zweiten Zeile wird der Name oder die statische IP-Adresse des Servers hinterlegt.
 
@@ -63,7 +88,7 @@ ansible_become_method=sudo
 
 Passend dazu wird im Verzeichnis **host_vars** eine Konfigurationsdatei mit dem Namen bzw. der statischen IP-Adresse angelegt.
 
-## [host_vars/raspberrypi.yml](host_vars/raspberrypi.yml)
+### [host_vars/raspberrypi.yml](host_vars/raspberrypi.yml)
 
 ```yaml
 ansible_user: andy
@@ -80,7 +105,17 @@ In der ersten Zeile steht der Benutzername des Ansible-Anwenders. Es folgt der N
 
 In der letzten Zeile wird das Installationsverzeichnis auf dem Server festgelegt, in das die zu installierenden Dienste kopiert werden sollen.
 
-## [~/.ansible/roles/geerlingguy.docker/defaults/main.yml](.ansible/roles/geerlingguy.docker/defaults/main.yml):
+## Inventory testen
+
+```shell
+#
+andy@mars:~/git/ansible-workbench$ ansible-inventory -i hosts --list
+#
+andy@mars:~/git/ansible-workbench$ ansible server -m ping -i hosts
+```
+## Konfiguration der Docker-Rolle anpassen
+
+### [~/.ansible/roles/geerlingguy.docker/defaults/main.yml](.ansible/roles/geerlingguy.docker/defaults/main.yml):
 
 In der Konfiguration der Docker-Rolle müssen die User angegeben werden, die während der Installation der Gruppe **docker** hinzugefügt werden sollen.
 
@@ -90,8 +125,9 @@ In der Konfiguration der Docker-Rolle müssen die User angegeben werden, die wä
 docker_users: [andy]
 ...
 ```
+## Playbooks
 
-## Playbook: [initial-setup.yml](initial-setup.yml)
+### [initial-setup.yml](initial-setup.yml)
 
 ```yaml
 - hosts: server
@@ -103,7 +139,7 @@ docker_users: [andy]
     - geerlingguy.docker
 ```
 
-### Aufruf
+#### Aufruf
 
 Bei der erstmaligen initialen Installation ist die passwortlose Anmeldung per SSH nicht möglich, da der öffentliche SSH-Schlüssel noch nicht hinterlegt wurde.
 
@@ -111,14 +147,14 @@ Bei der erstmaligen initialen Installation ist die passwortlose Anmeldung per SS
 andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook initial-setup.yml -i hosts --ask-pass --ask-become-pass
 ```
 
-### [Rolle: system](roles/system)
+#### [Rolle: system](roles/system)
 
 - Kryptographische Schlüssel für die passwortlose Anmeldung mit SSH übertragen
 - Benutzer der sudo-Gruppe hinzufügen
 - Installation der [Basis-Pakete](roles/system/vars/main.yml) mit **apt**
 - [Docker-Verzeichnis]([host_vars/raspberrypi.yml](host_vars/raspberrypi.yml)) anlegen
 
-### [Rolle: docker](.ansible)
+#### [Rolle: docker](.ansible)
 
 - Paketquelle für Docker inklusive der GPG-Schlüssel einrichten.
 - Docker und das Compose-Plugin installieren
@@ -149,11 +185,9 @@ andy@raspberrypi:~ $ docker ps
 CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
 ```
 
-### Rolle: [compose_hull](roles/compose_hull)
+#### Rolle: [compose_hull](roles/compose_hull)
 
-## Playbooks
-
-### Rolle: [system-setup](system-setup.yml)
+### [system-setup](system-setup.yml)
 
 Hier werden die Servicerollen nacheinander aufgerufen, was leider zur Zeit nicht funktioniert:
 
@@ -177,15 +211,15 @@ Hier werden die Servicerollen nacheinander aufgerufen, was leider zur Zeit nicht
         service_cfg: "{{ portainer }}"
 ```
 
-### Aufruf
+#### Aufruf
 
 ```shell
 andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook system-setup.yml -i hosts
 ```
 
-Werden die Rollen einzeln gestartet, kommt es zu keinen Fehlermeldungen, hier als Beispiel die Rolle für Traefik selbst:
+Werden die Rollen einzeln gestartet, kommt es zu keinen Fehlermeldungen:
 
-### Rolle [traefik.yml](traefik.yml)
+### [traefik.yml](traefik.yml)
 
 ```yaml
 - hosts: server
@@ -196,7 +230,40 @@ Werden die Rollen einzeln gestartet, kommt es zu keinen Fehlermeldungen, hier al
         service_cfg: "{{ traefik }}"
 ```
 
-## Services einzeln über Ansible starten
+### [watchtower.yml](watchtower.yml)
+
+```yaml
+- hosts: server
+  become: true
+  roles:
+    - role: watchtower
+      vars:
+        service_cfg: "{{ watchtower }}"
+```
+
+### [autoheal.yml](autoheal.yml)
+
+```yaml
+- hosts: server
+  become: true
+  roles:
+    - role: autoheal
+      vars:
+        service_cfg: "{{ autoheal }}"
+```
+
+### [portainer.yml](portainer.yml)
+
+```yaml
+- hosts: server
+  become: true
+  roles:
+    - role: portainer
+      vars:
+        service_cfg: "{{ portainer }}"
+```
+
+### Services einzeln über Ansible starten
 
 ```shell
 andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook traefik.yml -i hosts
