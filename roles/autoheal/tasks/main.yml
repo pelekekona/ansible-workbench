@@ -1,0 +1,12 @@
+- ansible.builtin.import_role:
+    name: compose_hull
+  vars:
+    service_defaults:
+      name:  autoheal
+      version: latest
+      traefik: false
+      external: false
+      watchtower: true
+      autoheal: false
+      telegram_bot:
+        enabled: false

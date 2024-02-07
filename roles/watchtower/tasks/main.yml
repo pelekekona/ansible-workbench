@@ -1,0 +1,18 @@
+- ansible.builtin.import_role:
+    name: compose_hull
+  vars:
+    service_defaults:
+      name:  watchtower
+      port: 8080
+      traefik: false
+      external: false
+      watchtower: true
+      autoheal: true
+      # service-specific config
+      version: latest
+      poll_interval: 86400  # 24h
+      http_token:           # disabled by default
+      telegram_bot_token:   # disabled by default
+      telegram_channel_id:  # disabled by default
+
+

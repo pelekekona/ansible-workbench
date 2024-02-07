@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  watchtower:
+    container_name: "{{ service_cfg.name }}"
+    image: "containrrr/watchtower:{{ service_cfg.version }}"
+    restart: unless-stopped
+    environment:
+      TZ: "{{ timezone }}"             # https://containrrr.dev/watchtower/arguments/#time_zone
+      WATCHTOWER_CLEANUP: "true"       # https://containrrr.dev/watchtower/arguments/#cleanup
+      WATCHTOWER_LABEL_ENABLE: "true"  # https://containrrr.dev/watchtower/arguments/#filter_by_enable_label
+      WATCHTOWER_INCLUDE_RESTARTING: "true"
+      WATCHTOWER_INCLUDE_STOPPED: "true"
+      WATCHTOWER_REVIVE_STOPPED: "true"
+      WATCHTOWER_POLL_INTERVAL: "{{ service_cfg.poll_interval }}"  # https://containrrr.dev/watchtower/arguments/#poll_interval
+{% if service_cfg.http_token != "" %}
+      WATCHTOWER_HTTP_API_UPDATE: "true"
+      WATCHTOWER_HTTP_API_TOKEN: "{{ service_cfg.http_token }}"
+      WATCHTOWER_HTTP_API_PERIODIC_POLLS: "true"
+{% endif %}
+{% if service_cfg.telegram_bot_token != "" %}
+      WATCHTOWER_NOTIFICATIONS: "shoutrrr"
+      WATCHTOWER_NOTIFICATION_URL: "telegram://{{ service_cfg.telegram_bot_token }}@telegram/?channels={{ service_cfg.telegram_channel_id }}"
+{% endif %}
+    volumes:
+      - "{{ service_cfg.directory }}:/config"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    labels: *base_labels
+    networks: *base_networks

@@ -1,0 +1,21 @@
+
+- name: Generate Compose File
+  template:
+    src: compose_master_template.yml.j2
+    dest: "{{ service_cfg.directory }}/docker-compose.yml"
+    owner: "{{ service_cfg.owner }}"
+    group: docker
+  tags: [ always ]
+
+
+
+- name: "{{ docker_compose_params.command }}: docker compose '{{ service_cfg.name }}/docker-compose.yml'"
+  community.docker.docker_compose_v2:
+    project_name: "{{ service_cfg.name }}"
+    project_src: "{{ service_cfg.directory }}"
+    state: "{{ docker_compose_params.state }}"
+    recreate: "{{ docker_compose_params.recreate }}"
+    remove_orphans: "{{ docker_compose_params.remove_orphans }}"
+    remove_volumes: "{{ docker_compose_params.remove_volumes }}"
+  register: service_stack
+  tags: [ always ]

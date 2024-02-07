@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  autoheal:
+    container_name: "{{ service_cfg.name }}"
+    image: "willfarrell/autoheal:{{ service_cfg.version }}"
+    restart: unless-stopped
+    environment:
+      AUTOHEAL_CONTAINER_LABEL: "autoheal"
+      AUTOHEAL_INTERVAL: 60   # check every 60 seconds
+{% if service_cfg.telegram_bot.enabled == true %}
+      WEBHOOK_URL: "https://api.telegram.org/bot{{ service_cfg.telegram_bot.token }}/sendMessage?chat_id={{ service_cfg.telegram_bot.channel_id }}"
+{% endif %}
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    labels: *base_labels
+    networks: *base_networks

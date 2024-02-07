@@ -1,0 +1,16 @@
+docker_compose_params:
+  command: "STARTED"
+  state: present
+  restarted: false
+  stopped: false
+  recreate: auto
+  remove_orphans: false
+  remove_volumes: false
+
+service_base_defaults:
+  traefik: true
+  external: false
+  watchtower: false
+  autoheal: false
+  subdirs: []
+  skip_network_definition: false

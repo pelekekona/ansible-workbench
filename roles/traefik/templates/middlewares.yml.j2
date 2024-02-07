@@ -1,0 +1,54 @@
+http:
+  middlewares:
+    https-redirect:
+      redirectScheme:
+        scheme: https
+        permanent: true
+    secHeaders:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        frameDeny: true
+        sslRedirect: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customRequestHeaders:
+          X-Frame-Options: "SAMEORIGIN"
+        customFrameOptionsValue: "SAMEORIGIN"
+    hsts-header:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        frameDeny: true
+        sslRedirect: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+    default-headers:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        frameDeny: true
+        sslRedirect: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+{% if service_cfg.internal_ip_ranges|length >= 1 %}
+    internal-ips-only:
+      ipWhiteList:
+        sourceRange:
+          {% for range in service_cfg.internal_ip_ranges %}
+          - "{{ range }}"
+          {% endfor %}
+{% endif %}
+
+    middlewares-compress:
+      compress: {}
+
+    middlewares-rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50

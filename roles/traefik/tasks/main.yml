@@ -1,0 +1,66 @@
+- ansible.builtin.import_role:
+    name: compose_hull
+    tasks_from: facts
+  vars:
+    service_defaults:
+      directory: "{{ docker_dir }}/traefik"
+      name: traefik
+      domain: "traefik.example.com"
+      port: 8080
+      traefik: true
+      external: true
+      watchtower: true
+      autoheal: true
+      internal_ip_ranges: []
+      skip_network_definition: false
+      subdirs:
+        - "dynamic"
+
+- ansible.builtin.import_role:
+    name: compose_hull
+    tasks_from: user_info
+
+- ansible.builtin.import_role:
+    name: compose_hull
+    tasks_from: create_directories
+
+- name: Copy static config traefik.yml
+  template:
+    src: traefik.yml.j2
+    dest: '{{ service_cfg.directory }}/traefik.yml'
+    owner: '{{ admin.name }}'
+    group: 'docker'
+  tags: [ always, started, restarted, recreated ]
+
+- name: Copy dynamic config files
+  copy:
+    src: "{{ item }}"
+    dest: '{{ service_cfg.directory }}/dynamic/{{ item }}'
+    owner: '{{ admin.name }}'
+    group: 'docker'
+  tags: [ always, started, restarted, recreated ]
+  with_items:
+    - tls-options.yml
+    - https-redirect-all.yml
+
+- name: Copy rules/middlewares.yml
+  template:
+    src: middlewares.yml.j2
+    dest: '{{ service_cfg.directory }}/dynamic/middlewares.yml'
+    owner: '{{ admin.name }}'
+    group: 'docker'
+  tags: [ always, started, restarted, recreated ]
+
+- name: ensure acme.json exists
+  copy:
+    content: ""
+    dest: '{{ service_cfg.directory }}/acme.json'
+    force: no
+    group: docker
+    owner: "{{ admin.name }}"
+    mode: 0600
+  tags: [ always, started, restarted, recreated ]
+
+- ansible.builtin.import_role:
+    name: compose_hull
+    tasks_from: deploy_docker

@@ -1,0 +1,15 @@
+# Globally redirect all traffic to https
+
+http:
+  routers:
+    https-redirect:
+      rule: 'HostRegexp(`{any:.*}`)'
+      middlewares:
+       - https-redirect
+      service: redirect-all
+
+  services:
+    redirect-all:
+      loadBalancer:
+        servers:
+         - url: ""

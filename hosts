@@ -1,0 +1,5 @@
+[server]
+raspberrypi
+
+[server:vars]
+ansible_become_method=sudo

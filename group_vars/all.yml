@@ -1,0 +1,29 @@
+all_service_defaults:
+  owner: "{{ admin.name }}"
+
+traefik:
+  name: traefik
+  directory: "{{ docker_dir }}/traefik"
+  domain: "tohus.dnshome.de"
+  http_basic_users: "admin:$$apr1$$X/y3j80i$$WCQ6u03uAmH3AGVYsblxg1"  # User: admin, Password: RosPtZ23rlWB98qoiEbKsjWcz
+  # internal_ip_ranges: [192.168.178.20 - 192.168.178.200]
+
+portainer:
+  name: portainer
+  admin_user: "admin"
+  directory: "{{ docker_dir }}/portainer"
+  admin_password: "jP4nalPjSva67SXHV4kJCdS67"
+
+watchtower:
+  name: watchtower
+  directory: "{{ docker_dir }}/watchtower"
+  http_token: "jP4nalPjSva67SXHV4kJCdS67"
+  telegram_bot_token: ""
+
+autoheal:
+  name: autoheal
+  directory: "{{ docker_dir }}/autoheal"
+  telegram_bot:
+    enabled: false
+    token: ""
+    channel_id: ""

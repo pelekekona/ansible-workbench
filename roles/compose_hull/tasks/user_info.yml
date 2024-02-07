@@ -1,0 +1,17 @@
+- name: "Get the ID of {{ admin.name }} and the ID of the group docker."
+  block:
+    - name: "Get the ID of {{ admin.name }} and the ID of the group docker."
+      ansible.builtin.getent:
+        database: "{{ item.db }}"
+        key: "{{ item.key }}"
+      with_items: [{"db": "passwd", "key": "{{ admin.name }}"}, {"db": "group", "key": "docker"}]
+
+    - name: "Store User ID: {{ ansible_facts.getent_passwd[vars.admin.name].1 }}"
+      set_fact:
+        PUID: "{{ ansible_facts.getent_passwd[vars.admin.name].1 }}"
+      tags: [ always, started, restarted, recreated ]
+
+    - name: "Store Goup ID of docker: {{ ansible_facts.getent_group['docker'].1 }}"
+      set_fact:
+        PGID: "{{ ansible_facts.getent_group['docker'].1 }}"
+      tags: [ always, started, restarted, recreated ]

@@ -1,0 +1,35 @@
+- ansible.builtin.import_role:
+    name: compose_hull
+  vars:
+    service_defaults:
+      directory: "{{ docker_dir }}/portainer"
+      name: portainer
+      domain: "tohus.dnshome.de/portainer"
+      port: 9000
+      traefik: true
+      external: true
+      watchtower: true
+      autoheal: true
+      skip_network_definition: false
+      subdirs: ["workdir", "confdir"]
+
+- block:
+  - name: "Get the ip of {{ service_cfg.name }}"
+    command: "docker inspect   -f '{{ '{{' }}(index .NetworkSettings.Networks \"traefik_default\").IPAddress{{ '}}' }}' {{ service_cfg.name }}"
+    register: command_output
+  - name: "Save ip in a variable"
+    ansible.builtin.set_fact:
+      portainer_ip: "{{ command_output.stdout }}"
+  - wait_for:
+      host: "{{ portainer_ip }}"
+      port: 9000
+      timeout: 15
+  - name: Configure admin user password
+    uri:
+      url: "http://{{ portainer_ip }}:9000/api/users/admin/init"
+      method: POST
+      return_content: true
+      body_format: json
+      body: '{ "Username":"{{ service_cfg.admin_user }}", "Password":"{{ service_cfg.admin_password }}"}'
+      status_code: 200, 409
+  tags: [ always, started, recreated ]
