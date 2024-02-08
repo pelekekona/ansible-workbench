@@ -22,6 +22,10 @@
     - [portainer.yml](#portaineryml)
     - [Services einzeln über Ansible starten](#services-einzeln-über-ansible-starten)
   - [Services auf dem Host starten](#services-auf-dem-host-starten)
+  - [Auf Services zugreifen](#auf-services-zugreifen)
+    - [Entfernter Zugriff über Subdomain](#entfernter-zugriff-über-subdomain)
+    - [Subdirectory statt Subdomain](#subdirectory-statt-subdomain)
+    - [Lokaler Zugriff](#lokaler-zugriff)
 
 # Ansible-Tutorial
 
@@ -282,3 +286,21 @@ andy@raspberrypi:/docker $ docker compose -f watchtower/docker-compose.yml up
 andy@raspberrypi:/docker $ docker compose -f autoheal/docker-compose.yml up
 andy@raspberrypi:/docker $ docker compose -f portainer/docker-compose.yml up
 ```
+
+## Auf Services zugreifen
+
+### Entfernter Zugriff über Subdomain
+
+- [Dashboard](https://tohus.dnshome.de/dashboard#/)
+- [Portainer] noch unbekannt
+
+### Subdirectory statt Subdomain
+
+  - [Routing with SubDirectory (Host + Path)](https://community.traefik.io/t/routing-with-subdirectory-host-path/6805)
+  - [Route Traefik to subfolder](https://serverfault.com/questions/988488/route-traefik-to-subfolder)
+  - [Reverse proxy in Traefik with subdirectories](https://iceburn.medium.com/reverse-proxy-in-traefik-with-subdirectories-eef4261939e)
+  - [Docker compose file for Traefik](https://gist.github.com/stefanfluit/0056bf42c2a2f729640ea755e03b1d5b)
+
+### Lokaler Zugriff
+
+Muss noch herausgefunden werden...
