@@ -25,6 +25,7 @@
   - [Auf Services zugreifen](#auf-services-zugreifen)
     - [Entfernter Zugriff über Subdomain](#entfernter-zugriff-über-subdomain)
     - [Subdirectory statt Subdomain](#subdirectory-statt-subdomain)
+      - [Verweise](#verweise)
     - [Lokaler Zugriff](#lokaler-zugriff)
 
 # Ansible-Tutorial
@@ -295,6 +296,14 @@ andy@raspberrypi:/docker $ docker compose -f portainer/docker-compose.yml up
 - [Portainer] noch unbekannt
 
 ### Subdirectory statt Subdomain
+
+Beispiel für die Traefik-Konfiguration in **docker-compose.yml**:
+
+```yaml
+- "traefik.http.routers.typo3-${NAMEOFSERVICE}.rule=(Host(`${HOSTNAME}`) && Path(`${DIRECTORY}`))"
+```
+
+#### Verweise
 
   - [Routing with SubDirectory (Host + Path)](https://community.traefik.io/t/routing-with-subdirectory-host-path/6805)
   - [Route Traefik to subfolder](https://serverfault.com/questions/988488/route-traefik-to-subfolder)
