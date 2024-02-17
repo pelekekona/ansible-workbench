@@ -8,25 +8,28 @@
   - [Inventory testen](#inventory-testen)
   - [Konfiguration der Docker-Rolle anpassen](#konfiguration-der-docker-rolle-anpassen)
     - [~/.ansible/roles/geerlingguy.docker/defaults/main.yml:](#ansiblerolesgeerlingguydockerdefaultsmainyml)
-  - [Playbooks](#playbooks)
-    - [initial-setup.yml](#initial-setupyml)
-      - [Aufruf](#aufruf)
-      - [Rolle: system](#rolle-system)
-      - [Rolle: docker](#rolle-docker)
-      - [Rolle: compose\_hull](#rolle-compose_hull)
-    - [system-setup](#system-setup)
-      - [Aufruf](#aufruf-1)
-    - [traefik.yml](#traefikyml)
-    - [watchtower.yml](#watchtoweryml)
-    - [autoheal.yml](#autohealyml)
-    - [portainer.yml](#portaineryml)
-    - [Services einzeln über Ansible starten](#services-einzeln-über-ansible-starten)
+  - [initial-setup.yml](#initial-setupyml)
+    - [Aufruf](#aufruf)
+    - [Rolle: system](#rolle-system)
+    - [Rolle: docker](#rolle-docker)
+    - [Rolle: compose\_hull](#rolle-compose_hull)
+  - [system-setup](#system-setup)
+    - [Aufruf](#aufruf-1)
+  - [traefik.yml](#traefikyml)
+  - [watchtower.yml](#watchtoweryml)
+  - [autoheal.yml](#autohealyml)
+  - [portainer.yml](#portaineryml)
+  - [Services einzeln über Ansible starten](#services-einzeln-über-ansible-starten)
   - [Services auf dem Host starten](#services-auf-dem-host-starten)
   - [Auf Services zugreifen](#auf-services-zugreifen)
     - [Entfernter Zugriff über Subdomain](#entfernter-zugriff-über-subdomain)
     - [Subdirectory statt Subdomain](#subdirectory-statt-subdomain)
-      - [Verweise](#verweise)
     - [Lokaler Zugriff](#lokaler-zugriff)
+  - [Verweise](#verweise)
+    - [Dokumentation](#dokumentation)
+    - [Docker-Tutorials](#docker-tutorials)
+    - [Ansible-Tutorials](#ansible-tutorials)
+    - [Traefik-Beispiele](#traefik-beispiele)
 
 # Ansible-Tutorial
 
@@ -130,9 +133,8 @@ In der Konfiguration der Docker-Rolle müssen die User angegeben werden, die wä
 docker_users: [andy]
 ...
 ```
-## Playbooks
 
-### [initial-setup.yml](initial-setup.yml)
+## [initial-setup.yml](initial-setup.yml)
 
 ```yaml
 - hosts: server
@@ -144,7 +146,7 @@ docker_users: [andy]
     - geerlingguy.docker
 ```
 
-#### Aufruf
+### Aufruf
 
 Bei der erstmaligen initialen Installation ist die passwortlose Anmeldung per SSH nicht möglich, da der öffentliche SSH-Schlüssel noch nicht hinterlegt wurde.
 
@@ -152,19 +154,19 @@ Bei der erstmaligen initialen Installation ist die passwortlose Anmeldung per SS
 andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook initial-setup.yml -i hosts --ask-pass --ask-become-pass
 ```
 
-#### [Rolle: system](roles/system)
+### [Rolle: system](roles/system)
 
 - Kryptographische Schlüssel für die passwortlose Anmeldung mit SSH übertragen
 - Benutzer der sudo-Gruppe hinzufügen
 - Installation der [Basis-Pakete](roles/system/vars/main.yml) mit **apt**
 - [Docker-Verzeichnis]([host_vars/raspberrypi.yml](host_vars/raspberrypi.yml)) anlegen
 
-#### [Rolle: docker](.ansible)
+### [Rolle: docker](.ansible)
 
 - Paketquelle für Docker inklusive der GPG-Schlüssel einrichten.
 - Docker und das Compose-Plugin installieren
 
-Nach erfolgter Installation und Neuanmeldung des Users kann die Docker-Konfiguration getestet werden:
+Nach erfolgter Installation und Neuanmeldung des Users kann die Docker-Konfiguration auf dem Server getestet werden:
 
 ```shell
 # Passwortloses login
@@ -190,9 +192,11 @@ andy@raspberrypi:~ $ docker ps
 CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
 ```
 
-#### Rolle: [compose_hull](roles/compose_hull)
+### Rolle: [compose_hull](roles/compose_hull)
 
-### [system-setup](system-setup.yml)
+```Baustelle...```
+
+## [system-setup](system-setup.yml)
 
 Hier werden die Servicerollen nacheinander aufgerufen, was leider zur Zeit nicht funktioniert:
 
@@ -216,7 +220,7 @@ Hier werden die Servicerollen nacheinander aufgerufen, was leider zur Zeit nicht
         service_cfg: "{{ portainer }}"
 ```
 
-#### Aufruf
+### Aufruf
 
 ```shell
 andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook system-setup.yml -i hosts
@@ -224,7 +228,7 @@ andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook system-setup.yml 
 
 Werden die Rollen einzeln gestartet, kommt es zu keinen Fehlermeldungen:
 
-### [traefik.yml](traefik.yml)
+## [traefik.yml](traefik.yml)
 
 ```yaml
 - hosts: server
@@ -235,7 +239,7 @@ Werden die Rollen einzeln gestartet, kommt es zu keinen Fehlermeldungen:
         service_cfg: "{{ traefik }}"
 ```
 
-### [watchtower.yml](watchtower.yml)
+## [watchtower.yml](watchtower.yml)
 
 ```yaml
 - hosts: server
@@ -246,7 +250,7 @@ Werden die Rollen einzeln gestartet, kommt es zu keinen Fehlermeldungen:
         service_cfg: "{{ watchtower }}"
 ```
 
-### [autoheal.yml](autoheal.yml)
+## [autoheal.yml](autoheal.yml)
 
 ```yaml
 - hosts: server
@@ -257,7 +261,7 @@ Werden die Rollen einzeln gestartet, kommt es zu keinen Fehlermeldungen:
         service_cfg: "{{ autoheal }}"
 ```
 
-### [portainer.yml](portainer.yml)
+## [portainer.yml](portainer.yml)
 
 ```yaml
 - hosts: server
@@ -268,7 +272,7 @@ Werden die Rollen einzeln gestartet, kommt es zu keinen Fehlermeldungen:
         service_cfg: "{{ portainer }}"
 ```
 
-### Services einzeln über Ansible starten
+## Services einzeln über Ansible starten
 
 ```shell
 andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook traefik.yml -i hosts
@@ -303,13 +307,35 @@ Beispiel für die Traefik-Konfiguration in **docker-compose.yml**:
 - "traefik.http.routers.typo3-${NAMEOFSERVICE}.rule=(Host(`${HOSTNAME}`) && Path(`${DIRECTORY}`))"
 ```
 
-#### Verweise
+### Lokaler Zugriff
+
+Muss noch herausgefunden werden...
+
+## Verweise
+
+### Dokumentation
+
+  - [Dokumentation](https://docs.ansible.com/ansible/latest/index.html)
+  - [Templating (Jinja2)](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_templating.html)
+  - [Template Designer Documentation](https://jinja.palletsprojects.com/en/3.1.x/templates/)
+  - []()
+
+### Docker-Tutorials
+
+  - [Initial Server Setup with Ubuntu](https://www.digitalocean.com/community/tutorials/initial-server-setup-with-ubuntu-20-04)
+  - [How To Install and Use Docker on Ubuntu](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-20-04)
+  - []()
+
+### Ansible-Tutorials
+
+  - [How to Use Ansible to Automate Initial Server Setup on Ubuntu](https://www.digitalocean.com/community/tutorials/how-to-use-ansible-to-automate-initial-server-setup-on-ubuntu-20-04)
+  - [How to Use Ansible to Install and Set Up Docker on Ubuntu](https://www.digitalocean.com/community/tutorials/how-to-use-ansible-to-install-and-set-up-docker-on-ubuntu-20-04)
+  - []()
+
+### Traefik-Beispiele
 
   - [Routing with SubDirectory (Host + Path)](https://community.traefik.io/t/routing-with-subdirectory-host-path/6805)
   - [Route Traefik to subfolder](https://serverfault.com/questions/988488/route-traefik-to-subfolder)
   - [Reverse proxy in Traefik with subdirectories](https://iceburn.medium.com/reverse-proxy-in-traefik-with-subdirectories-eef4261939e)
   - [Docker compose file for Traefik](https://gist.github.com/stefanfluit/0056bf42c2a2f729640ea755e03b1d5b)
-
-### Lokaler Zugriff
-
-Muss noch herausgefunden werden...
+  - []()

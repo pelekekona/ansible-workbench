@@ -10,7 +10,8 @@ x-labels: &base_labels
       traefik.docker.network: "traefik_default"
       traefik.http.services.{{ service_cfg.name }}.loadbalancer.server.port: "{{ service_cfg.port }}"
       traefik.http.routers.{{ service_cfg.name }}_web.EntryPoints: "web-secure"
-      traefik.http.routers.{{ service_cfg.name }}_web.rule: "Host(`{{ service_cfg.domain }}`)"
+#     traefik.http.routers.{{ service_cfg.name }}_web.rule: "Host(`{{ service_cfg.domain }}`)"
+      traefik.http.routers.{{ service_cfg.name }}_web.rule: "Host(`{{ service_cfg.domain }}`) && PathPrefix(`/{{ service_cfg.name }}`)"
 {% if service_cfg.external is not defined or service_cfg.external == false %}
       traefik.http.routers.{{ service_cfg.name }}_web.middlewares: "internal-ips-only@file"
 {% endif %}

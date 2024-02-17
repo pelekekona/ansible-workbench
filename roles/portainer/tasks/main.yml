@@ -4,7 +4,7 @@
     service_defaults:
       directory: "{{ docker_dir }}/portainer"
       name: portainer
-      domain: "tohus.dnshome.de/portainer"
+      domain: "tohus.dnshome.de"
       port: 9000
       traefik: true
       external: true

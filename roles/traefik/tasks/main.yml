@@ -5,7 +5,7 @@
     service_defaults:
       directory: "{{ docker_dir }}/traefik"
       name: traefik
-      domain: "traefik.example.com"
+      domain: "tohus.dnshome.de"
       port: 8080
       traefik: true
       external: true
