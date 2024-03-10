@@ -19,10 +19,17 @@ services:
       - "{{ service_cfg.directory }}/traefik.yml:/etc/traefik/traefik.yml:ro"
       - "{{ service_cfg.directory }}/dynamic:/etc/traefik/dynamic"
       - "{{ service_cfg.directory }}/acme.json:/etc/traefik/acme/acme.json:rw"
+
     labels:
       << : *base_labels
+#     Middlewares declaration
       traefik.http.middlewares.{{ service_cfg.name }}_web-auth.basicauth.users: "{{ service_cfg.http_basic_users }}"
-      traefik.http.routers.{{ service_cfg.name }}_web.middlewares: "{{ service_cfg.name }}_web-auth"
+      traefik.http.middlewares.dashboard-strip.stripprefix.prefixes: "/dashboard"
+      traefik.http.routers.{{ service_cfg.name }}_web.middlewares: "dashboard-strip,{{ service_cfg.name }}_web-auth"
+#     Routing
+      traefik.http.routers.{{ service_cfg.name }}_web.rule: "Host(`{{ service_cfg.domain }}`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))"
+      traefik.http.routers.{{ service_cfg.name }}_web.service: api@internal
+
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks: *base_networks

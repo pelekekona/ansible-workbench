@@ -25,6 +25,11 @@
     - [Entfernter Zugriff über Subdomain](#entfernter-zugriff-über-subdomain)
     - [Subdirectory statt Subdomain](#subdirectory-statt-subdomain)
     - [Lokaler Zugriff](#lokaler-zugriff)
+  - [Generierte Docker-Compose-Dateien](#generierte-docker-compose-dateien)
+    - [traefik.yml](#traefikyml-1)
+    - [portainer.yml](#portaineryml-1)
+    - [autoheal.yml](#autohealyml-1)
+    - [watchtower.yml](#watchtoweryml-1)
   - [Verweise](#verweise)
     - [Dokumentation](#dokumentation)
     - [Docker-Tutorials](#docker-tutorials)
@@ -311,6 +316,237 @@ Beispiel für die Traefik-Konfiguration in **docker-compose.yml**:
 
 Muss noch herausgefunden werden...
 
+## Generierte Docker-Compose-Dateien
+
+### traefik.yml
+
+```yaml
+#
+# Ansible managed
+#
+
+# Labels for Traefik, Watchtower, and Autoheal
+#   (docker compose ignores fields that start with `x-`. So we can use them to
+#    define reusable fragments with `&anchors`. See:
+#    https://docs.docker.com/compose/compose-file/11-extension/ )
+x-labels: &base_labels
+      traefik.enable: "true"
+      traefik.docker.network: "traefik_default"
+      traefik.http.services.traefik.loadbalancer.server.port: "8080"
+      traefik.http.routers.traefik_web.EntryPoints: "web-secure"
+#     traefik.http.routers.traefik_web.rule: "Host(`tohus.dnshome.de`)"
+      traefik.http.routers.traefik_web.rule: "Host(`tohus.dnshome.de`) && PathPrefix(`/traefik`)"
+      traefik.http.middlewares.traefikpathstrip.stripprefix.prefixes: "/traefik"
+      traefik.http.routers.traefik.middlewares: "traefikpathstrip@docker"
+      traefik.http.routers.traefik_web.service: "traefik"
+      traefik.http.routers.traefik_web.tls: "true"
+      traefik.http.routers.traefik_web.tls.certresolver: "default"
+      com.centurylinklabs.watchtower.enable: "true"
+      autoheal: "true"
+
+# Reusable default networks configuration to ensure container is part of both
+# the traefik network and the default network of this compose file
+x-networks: &base_networks
+  default:
+  traefik_net:
+    aliases:
+      - traefik
+
+# The main Docker Compose file
+version: "3.8"
+
+services:
+  traefik:
+    image: "traefik"
+    container_name: "traefik"
+    restart: always
+    healthcheck:
+      test: "traefik healthcheck"
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      PUID: "1000"
+      PGID: "1001"
+      TZ: "Europe/Berlin"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:rw"
+      - "/docker/traefik/traefik.yml:/etc/traefik/traefik.yml:ro"
+      - "/docker/traefik/dynamic:/etc/traefik/dynamic"
+      - "/docker/traefik/acme.json:/etc/traefik/acme/acme.json:rw"
+    labels:
+      << : *base_labels
+      traefik.http.middlewares.traefik_web-auth.basicauth.users: "admin:$$apr1$$X/y3j80i$$WCQ6u03uAmH3AGVYsblxg1"
+      traefik.http.routers.traefik_web.middlewares: "traefik_web-auth"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks: *base_networks
+
+# Access the traefik-network
+networks:
+  traefik_net:
+    name: traefik_default
+    external: true
+```
+
+### portainer.yml
+
+```yaml
+#
+# Ansible managed
+#
+
+# Labels for Traefik, Watchtower, and Autoheal
+#   (docker compose ignores fields that start with `x-`. So we can use them to
+#    define reusable fragments with `&anchors`. See:
+#    https://docs.docker.com/compose/compose-file/11-extension/ )
+x-labels: &base_labels
+      traefik.enable: "true"
+      traefik.docker.network: "traefik_default"
+      traefik.http.services.portainer.loadbalancer.server.port: "9000"
+      traefik.http.routers.portainer_web.EntryPoints: "web-secure"
+#     traefik.http.routers.portainer_web.rule: "Host(`tohus.dnshome.de`)"
+      traefik.http.routers.portainer_web.rule: "Host(`tohus.dnshome.de`) && PathPrefix(`/portainer`)"
+      traefik.http.middlewares.portainerpathstrip.stripprefix.prefixes: "/portainer"
+      traefik.http.routers.portainer.middlewares: "portainerpathstrip@docker"
+      traefik.http.routers.portainer_web.service: "portainer"
+      traefik.http.routers.portainer_web.tls: "true"
+      traefik.http.routers.portainer_web.tls.certresolver: "default"
+      com.centurylinklabs.watchtower.enable: "true"
+      autoheal: "true"
+
+# Reusable default networks configuration to ensure container is part of both
+# the traefik network and the default network of this compose file
+x-networks: &base_networks
+  default:
+  traefik_net:
+    aliases:
+      - portainer
+
+# The main Docker Compose file
+version: "3.8"
+
+services:
+  portainer:
+    container_name: "portainer"
+    image: "portainer/portainer-ce:alpine"
+    restart: unless-stopped
+    environment:
+      TZ: "Europe/Berlin"
+    volumes:
+      - "/docker/portainer:/data:rw"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    labels: *base_labels
+    networks: *base_networks
+
+# Access the traefik-network
+networks:
+  traefik_net:
+    name: traefik_default
+    external: true
+```
+
+### autoheal.yml
+
+```yaml
+#
+# Ansible managed
+#
+
+# Labels for Traefik, Watchtower, and Autoheal
+#   (docker compose ignores fields that start with `x-`. So we can use them to
+#    define reusable fragments with `&anchors`. See:
+#    https://docs.docker.com/compose/compose-file/11-extension/ )
+x-labels: &base_labels
+      com.centurylinklabs.watchtower.enable: "true"
+
+# Reusable default networks configuration to ensure container is part of both
+# the traefik network and the default network of this compose file
+x-networks: &base_networks
+  default:
+  traefik_net:
+    aliases:
+      - autoheal
+
+# The main Docker Compose file
+version: "3.8"
+
+services:
+  autoheal:
+    container_name: "autoheal"
+    image: "willfarrell/autoheal:latest"
+    restart: unless-stopped
+    environment:
+      AUTOHEAL_CONTAINER_LABEL: "autoheal"
+      AUTOHEAL_INTERVAL: 60   # check every 60 seconds
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    labels: *base_labels
+    networks: *base_networks
+
+# Access the traefik-network
+networks:
+  traefik_net:
+    name: traefik_default
+    external: true
+```
+
+### watchtower.yml
+
+```yaml
+#
+# Ansible managed
+#
+
+# Labels for Traefik, Watchtower, and Autoheal
+#   (docker compose ignores fields that start with `x-`. So we can use them to
+#    define reusable fragments with `&anchors`. See:
+#    https://docs.docker.com/compose/compose-file/11-extension/ )
+x-labels: &base_labels
+      com.centurylinklabs.watchtower.enable: "true"
+      autoheal: "true"
+
+# Reusable default networks configuration to ensure container is part of both
+# the traefik network and the default network of this compose file
+x-networks: &base_networks
+  default:
+  traefik_net:
+    aliases:
+      - watchtower
+
+# The main Docker Compose file
+version: "3.8"
+
+services:
+  watchtower:
+    container_name: "watchtower"
+    image: "containrrr/watchtower:latest"
+    restart: unless-stopped
+    environment:
+      TZ: "Europe/Berlin"             # https://containrrr.dev/watchtower/arguments/#time_zone
+      WATCHTOWER_CLEANUP: "true"       # https://containrrr.dev/watchtower/arguments/#cleanup
+      WATCHTOWER_LABEL_ENABLE: "true"  # https://containrrr.dev/watchtower/arguments/#filter_by_enable_label
+      WATCHTOWER_INCLUDE_RESTARTING: "true"
+      WATCHTOWER_INCLUDE_STOPPED: "true"
+      WATCHTOWER_REVIVE_STOPPED: "true"
+      WATCHTOWER_POLL_INTERVAL: "86400"  # https://containrrr.dev/watchtower/arguments/#poll_interval
+      WATCHTOWER_HTTP_API_UPDATE: "true"
+      WATCHTOWER_HTTP_API_TOKEN: "jP4nalPjSva67SXHV4kJCdS67"
+      WATCHTOWER_HTTP_API_PERIODIC_POLLS: "true"
+    volumes:
+      - "/docker/watchtower:/config"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    labels: *base_labels
+    networks: *base_networks
+
+# Access the traefik-network
+networks:
+  traefik_net:
+    name: traefik_default
+    external: true
+```
+
 ## Verweise
 
 ### Dokumentation
@@ -338,4 +574,5 @@ Muss noch herausgefunden werden...
   - [Route Traefik to subfolder](https://serverfault.com/questions/988488/route-traefik-to-subfolder)
   - [Reverse proxy in Traefik with subdirectories](https://iceburn.medium.com/reverse-proxy-in-traefik-with-subdirectories-eef4261939e)
   - [Docker compose file for Traefik](https://gist.github.com/stefanfluit/0056bf42c2a2f729640ea755e03b1d5b)
+  - [Advanced configuration with Docker Compose](https://mmorejon.io/en/blog/traefik-2-advanced-configuration-docker-compose/)
   - []()

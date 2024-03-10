@@ -3,12 +3,21 @@ version: "3.8"
 services:
   portainer:
     container_name: "{{ service_cfg.name }}"
-    image: "portainer/portainer-ce:alpine"
+    image: "portainer/portainer-ce"
     restart: unless-stopped
     environment:
       TZ: "{{ timezone }}"
     volumes:
       - "{{ service_cfg.directory }}:/data:rw"
       - "/var/run/docker.sock:/var/run/docker.sock"
-    labels: *base_labels
+
+    labels:
+      << : *base_labels
+#     Middlewares declaration
+      traefik.http.middlewares.{{ service_cfg.name }}_web-strip.stripprefix.prefixes: "/{{ service_cfg.name }}"
+      traefik.http.routers.{{ service_cfg.name }}_web.middlewares: "{{ service_cfg.name }}_web-strip"
+#     Routing
+      traefik.http.routers.{{ service_cfg.name }}_web.rule: "Host(`{{ service_cfg.domain }}`) && PathPrefix(`/{{ service_cfg.name }}`)"
+      traefik.http.routers.{{ service_cfg.name }}_web.service: "{{ service_cfg.name }}"
+
     networks: *base_networks
