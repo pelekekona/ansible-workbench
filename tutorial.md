@@ -1,48 +1,64 @@
-- [Ansible-Tutorial](#ansible-tutorial)
-  - [Installationen](#installationen)
-    - [Pipfile](#pipfile)
-    - [Docker](#docker)
-  - [Inventory anpassen](#inventory-anpassen)
-    - [hosts](#hosts)
-    - [host\_vars/raspberrypi.yml](#host_varsraspberrypiyml)
-  - [Inventory testen](#inventory-testen)
-  - [Konfiguration der Docker-Rolle anpassen](#konfiguration-der-docker-rolle-anpassen)
-    - [~/.ansible/roles/geerlingguy.docker/defaults/main.yml:](#ansiblerolesgeerlingguydockerdefaultsmainyml)
-  - [initial-setup.yml](#initial-setupyml)
-    - [Aufruf](#aufruf)
-    - [Rolle: system](#rolle-system)
-    - [Rolle: docker](#rolle-docker)
-    - [Rolle: compose\_hull](#rolle-compose_hull)
-  - [system-setup](#system-setup)
-    - [Aufruf](#aufruf-1)
-  - [traefik.yml](#traefikyml)
-  - [watchtower.yml](#watchtoweryml)
-  - [autoheal.yml](#autohealyml)
-  - [portainer.yml](#portaineryml)
-  - [Services einzeln über Ansible starten](#services-einzeln-über-ansible-starten)
+- [Infrastructure as code (IaC)](#infrastructure-as-code-iac)
+  - [Managed node: Voraussetzungen schaffen](#managed-node-voraussetzungen-schaffen)
+  - [Control node](#control-node)
+    - [Ansible installieren](#ansible-installieren)
+    - [Docker-Rolle installieren](#docker-rolle-installieren)
+  - [Projekt anpassen](#projekt-anpassen)
+    - [Inventory](#inventory)
+    - [Inventory testen](#inventory-testen)
+    - [Docker-Rolle konfigurieren](#docker-rolle-konfigurieren)
+  - [Templates anpassen](#templates-anpassen)
+  - [Playbook ausführen: initial-setup.yml](#playbook-ausführen-initial-setupyml)
+  - [Playbook ausführen: system-setup](#playbook-ausführen-system-setup)
   - [Services auf dem Host starten](#services-auf-dem-host-starten)
   - [Auf Services zugreifen](#auf-services-zugreifen)
     - [Entfernter Zugriff über Subdomain](#entfernter-zugriff-über-subdomain)
     - [Subdirectory statt Subdomain](#subdirectory-statt-subdomain)
     - [Lokaler Zugriff](#lokaler-zugriff)
   - [Generierte Docker-Compose-Dateien](#generierte-docker-compose-dateien)
-    - [traefik.yml](#traefikyml-1)
-    - [portainer.yml](#portaineryml-1)
-    - [autoheal.yml](#autohealyml-1)
-    - [watchtower.yml](#watchtoweryml-1)
+    - [traefik.yml](#traefikyml)
+    - [portainer.yml](#portaineryml)
+    - [autoheal.yml](#autohealyml)
+    - [watchtower.yml](#watchtoweryml)
   - [Verweise](#verweise)
     - [Dokumentation](#dokumentation)
     - [Docker-Tutorials](#docker-tutorials)
     - [Ansible-Tutorials](#ansible-tutorials)
     - [Traefik-Beispiele](#traefik-beispiele)
 
-# Ansible-Tutorial
+# Infrastructure as code (IaC)
 
-## Installationen
+Diese Dokumentation behandelt die Automatisierung von Verwaltungstätigkeiten - Installieren, Kopieren, Patchen - mit **Ansible**. Anweisungen werden auf einem der Verwaltung dienenden Server (ansible control node) reproduzierbar für eine beliebige Anzahl von Servern (managed nodes) ausgeführt. Bei dem **ansible control node** kann es sich um den Arbeitsplatzrechner als auch um einen aus der Ferne zu administrierenden Server handeln.
 
-In den folgenden Ausführungen bezeichnet ***Server*** den durch Ansible zu verwaltenden Server.
+IaC bietet die folgenden Vorteile:
 
-### [Pipfile](Pipfile)
+- Kostenreduzierung
+- Beschleunigung der Software-Verteilung
+- Fehlervermeidung
+- Verbesserung der Infrastruktur-Konsistenz
+- Vermeidung von Konfigurationsabweichungen
+
+Das vorhandene Wissen bezüglich Installation und Konfiguration fließt in Anweisungen, die gleichzeitig die vollständige Dokumentation bilden und über Ansible ausgeführt werden. Anweisungen, **Tasks** werden in Rollen, **Roles** organisiert und über **Playbooks** ausgeführt.
+
+Ausgangspunkt ist eine Artikelserie in der Zeitschrift c't, in der ein Projekt zum Server-Setup in einer Docker-Umgebung beschrieben wird. Es wurde eine Kopie erstellt, die für eine vorhandene Docker-Installation auf einem Raspberry Pi im Heimbereich angepasst wird.
+
+Bevor mit der Automatisierung über Ansible begonnen wird, sollte das Ziel klar sein. Aus diesem Grund wurde die im c't-Projekt verwendete Docker-Installation zunächst manuell nachgebaut und getestet. Erst im Anschluß wurde das c't-Projekt so angepasst, dass es die manuelle Konfiguration auch automatisch erstellt werden kann.
+
+Wenn die Infrastruktur am Ende automatisch erzeugt und bereitgestellt werden kann, besteht die Möglichkeit, die Ansible-Konfiguration um weitere Playbooks für andere Container-Dienste zu erweitern.
+
+## Managed node: Voraussetzungen schaffen
+
+Der bereits vorhandene Raspberry Pi soll der **managed node** sein, auf dem eine Docker-Infrastruktur installiert werden soll. Der Raspi muss per ssh vom **control node** erreichbar sein.
+
+## Control node
+
+### Ansible installieren
+
+[Pipfile](Pipfile)
+
+**Pipenv** ist ein Paketmanager, der alle erforderliche Ressourcen bereitstellt, um eine virtuelle Ablaufumgebung für ein Python-Projekt zu erzeugen. Zu installierende Pakete werden über **Pipfile** verwaltet.
+
+Unter Umständen muss die Python-Version an die im Betriebsystem installierte Version angepasst werden.
 
 ```shell
 [[source]]
@@ -60,18 +76,18 @@ ansible = "*"
 python_version = "3.10"
 ```
 
-Die packages **passlib** und **ansible** in **Pipfile** werden explizit installiert:
+Zunächst werden die Pakete **passlib** und **ansible** in **Pipfile**  installiert:
 
 ```shell
 andy@mars:~/git/ansible-workbench$ pipenv install
 ```
 
-### Docker
+### Docker-Rolle installieren
 
-Die Rolle zur Docker-Installation wird über **ansible-galaxy** installiert:
+**Ansible Galaxy** ist ein Repository zur Verwaltung und Bereitstellung von Rollen, die in den eigenen Autoamtisierungsprojekten verwendet werden können. Hier wird die Rolle zur Docker-Installation installiert:
 
 ```shell
-$ pipenv run ansible-galaxy role install geerlingguy.docker
+andy@mars:~/git/ansible-workbench$ pipenv run ansible-galaxy role install geerlingguy.docker
 Starting galaxy role install process
 - downloading role 'docker', owned by geerlingguy
 - downloading role from https://github.com/geerlingguy/ansible-role-docker/archive/7.1.0.tar.gz
@@ -79,17 +95,19 @@ Starting galaxy role install process
 - geerlingguy.docker (7.1.0) was installed successfully
 ```
 
-Symbolischen Link anlegen, um die Konfigurationsdateien in der IDE im Zugriff zu haben. Der Link sollte anschließend der Datei **.gitignore** hinzugefügt werden, um ihn von der Synchronisation mit dem Repository auszuschließen.
+Um auf die Konfigurationsdateien über die IDE zugreifen zu können, kann ein symbolischer Link angelegt werden. Der Link sollte anschließend der Datei **.gitignore** hinzugefügt werden, um ihn von der Synchronisation mit dem Repository auszuschließen:
 
 ```shell
 andy@mars:~/git/ansible-workbench$ ln -s ~/.ansible/ .ansible
 ```
 
-## Inventory anpassen
+## Projekt anpassen
 
-### [hosts](hosts)
+### Inventory
 
-In der zweiten Zeile wird der Name oder die statische IP-Adresse des Servers hinterlegt.
+[hosts](hosts)
+
+Hier werden die Namen oder statischen IP-Adressen der **control nodes** hinterlegt:
 
 ```shell
 [server]
@@ -99,9 +117,9 @@ raspberrypi
 ansible_become_method=sudo
 ```
 
-Passend dazu wird im Verzeichnis **host_vars** eine Konfigurationsdatei mit dem Namen bzw. der statischen IP-Adresse angelegt.
+Passend dazu wird im Verzeichnis **host_vars** eine Konfigurationsdatei mit dem Namen bzw. der statischen IP-Adresse pro **control node** angelegt:
 
-### [host_vars/raspberrypi.yml](host_vars/raspberrypi.yml)
+[host_vars/raspberrypi.yml](host_vars/raspberrypi.yml)
 
 ```yaml
 ansible_user: andy
@@ -118,17 +136,17 @@ In der ersten Zeile steht der Benutzername des Ansible-Anwenders. Es folgt der N
 
 In der letzten Zeile wird das Installationsverzeichnis auf dem Server festgelegt, in das die zu installierenden Dienste kopiert werden sollen.
 
-## Inventory testen
+### Inventory testen
+
+Die für eine automatisierte Installation hinterlegten Server können wie folgt getestet werden:
 
 ```shell
-#
 andy@mars:~/git/ansible-workbench$ ansible-inventory -i hosts --list
-#
 andy@mars:~/git/ansible-workbench$ ansible server -m ping -i hosts
 ```
-## Konfiguration der Docker-Rolle anpassen
+### Docker-Rolle konfigurieren
 
-### [~/.ansible/roles/geerlingguy.docker/defaults/main.yml](.ansible/roles/geerlingguy.docker/defaults/main.yml):
+[~/.ansible/roles/geerlingguy.docker/defaults/main.yml](.ansible/roles/geerlingguy.docker/defaults/main.yml)
 
 In der Konfiguration der Docker-Rolle müssen die User angegeben werden, die während der Installation der Gruppe **docker** hinzugefügt werden sollen.
 
@@ -139,19 +157,15 @@ docker_users: [andy]
 ...
 ```
 
-## [initial-setup.yml](initial-setup.yml)
+## Templates anpassen
 
-```yaml
-- hosts: server
-  become: true
-  vars:
-    pip_package: python3-pip
-  roles:
-    - system
-    - geerlingguy.docker
-```
+Die ursprüngliche Adressierung der Dienste erfolgte über eine **subdomain**. Wo dies möglich ist, soll aber über einen **subfolder** adressiert werden. Auf die gleiche Weise soll das Traefik-Dashboard erreichbar sein. Dafür müssen das Master-Template sowie die Templates für Traefik und Portainer umgestellt werden:
 
-### Aufruf
+- [compose_master_template.yml.j2](roles/compose_hull/templates/compose_master_template.yml.j2)
+- [docker-compose.yml.j2](roles/traefik/templates/docker-compose.yml.j2)
+- [docker-compose.yml.j2](roles/portainer/docker-compose.yml.j2)
+
+## [Playbook ausführen: initial-setup.yml](initial-setup.yml)
 
 Bei der erstmaligen initialen Installation ist die passwortlose Anmeldung per SSH nicht möglich, da der öffentliche SSH-Schlüssel noch nicht hinterlegt wurde.
 
@@ -159,14 +173,14 @@ Bei der erstmaligen initialen Installation ist die passwortlose Anmeldung per SS
 andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook initial-setup.yml -i hosts --ask-pass --ask-become-pass
 ```
 
-### [Rolle: system](roles/system)
+[Rolle: system](roles/system)
 
 - Kryptographische Schlüssel für die passwortlose Anmeldung mit SSH übertragen
 - Benutzer der sudo-Gruppe hinzufügen
 - Installation der [Basis-Pakete](roles/system/vars/main.yml) mit **apt**
-- [Docker-Verzeichnis]([host_vars/raspberrypi.yml](host_vars/raspberrypi.yml)) anlegen
+- [Docker-Verzeichnis](host_vars/raspberrypi.yml) anlegen
 
-### [Rolle: docker](.ansible)
+[Rolle: docker](.ansible)
 
 - Paketquelle für Docker inklusive der GPG-Schlüssel einrichten.
 - Docker und das Compose-Plugin installieren
@@ -197,87 +211,27 @@ andy@raspberrypi:~ $ docker ps
 CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
 ```
 
-### Rolle: [compose_hull](roles/compose_hull)
+Rolle: [compose_hull](roles/compose_hull)
 
 ```Baustelle...```
 
-## [system-setup](system-setup.yml)
+## [Playbook ausführen: system-setup](system-setup.yml)
 
-Hier werden die Servicerollen nacheinander aufgerufen, was leider zur Zeit nicht funktioniert:
-
-```yaml
-- hosts: server
-  become: true
-  roles:
-    - system
-    - geerlingguy.docker
-    - role: traefik
-      vars:
-        service_cfg: "{{ traefik }}"
-    - role: watchtower
-      vars:
-        service_cfg: "{{ watchtower }}"
-    - role: autoheal
-      vars:
-        service_cfg: "{{ autoheal }}"
-    - role: portainer
-      vars:
-        service_cfg: "{{ portainer }}"
-```
-
-### Aufruf
+Die Playbooks aller Services können gemeinsam über ein System-Playbook ausgeführt werden.
+Dies ist aus noch ungeklärten Gründen nicht möglich.
 
 ```shell
 andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook system-setup.yml -i hosts
 ```
 
-Werden die Rollen einzeln gestartet, kommt es zu keinen Fehlermeldungen:
+Werden die Playbooks einzeln ausgeführt, kommt es zu keinen Fehlermeldungen.
 
-## [traefik.yml](traefik.yml)
+- [Playbook ausführen: traefik.yml](traefik.yml)
+- [Playbook ausführen: watchtower.yml](watchtower.yml)
+- [Playbook ausführen: autoheal.yml](autoheal.yml)
+- [Playbook ausführen: portainer.yml](portainer.yml)
 
-```yaml
-- hosts: server
-  become: true
-  roles:
-    - role: traefik
-      vars:
-        service_cfg: "{{ traefik }}"
-```
-
-## [watchtower.yml](watchtower.yml)
-
-```yaml
-- hosts: server
-  become: true
-  roles:
-    - role: watchtower
-      vars:
-        service_cfg: "{{ watchtower }}"
-```
-
-## [autoheal.yml](autoheal.yml)
-
-```yaml
-- hosts: server
-  become: true
-  roles:
-    - role: autoheal
-      vars:
-        service_cfg: "{{ autoheal }}"
-```
-
-## [portainer.yml](portainer.yml)
-
-```yaml
-- hosts: server
-  become: true
-  roles:
-    - role: portainer
-      vars:
-        service_cfg: "{{ portainer }}"
-```
-
-## Services einzeln über Ansible starten
+Services über ein Skript starten:
 
 ```shell
 andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook traefik.yml -i hosts
@@ -429,7 +383,7 @@ version: "3.8"
 services:
   portainer:
     container_name: "portainer"
-    image: "portainer/portainer-ce:alpine"
+    image: "portainer/portainer-ce"
     restart: unless-stopped
     environment:
       TZ: "Europe/Berlin"

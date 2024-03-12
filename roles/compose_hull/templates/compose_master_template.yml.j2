@@ -14,7 +14,6 @@ x-labels: &base_labels
 {% if service_cfg.external is not defined or service_cfg.external == false %}
       traefik.http.routers.{{ service_cfg.name }}_web.middlewares: "internal-ips-only@file"
 {% endif %}
-#     traefik.http.routers.{{ service_cfg.name }}_web.service: "{{ service_cfg.name }}"
       traefik.http.routers.{{ service_cfg.name }}_web.tls: "true"
       traefik.http.routers.{{ service_cfg.name }}_web.tls.certresolver: "default"
 {% endif %}

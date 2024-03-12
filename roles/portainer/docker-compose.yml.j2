@@ -13,7 +13,7 @@ services:
 
     labels:
       << : *base_labels
-#     Middlewares declaration
+#     Middleware
       traefik.http.middlewares.{{ service_cfg.name }}_web-strip.stripprefix.prefixes: "/{{ service_cfg.name }}"
       traefik.http.routers.{{ service_cfg.name }}_web.middlewares: "{{ service_cfg.name }}_web-strip"
 #     Routing

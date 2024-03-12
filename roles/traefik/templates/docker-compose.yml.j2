@@ -22,7 +22,7 @@ services:
 
     labels:
       << : *base_labels
-#     Middlewares declaration
+#     Middleware
       traefik.http.middlewares.{{ service_cfg.name }}_web-auth.basicauth.users: "{{ service_cfg.http_basic_users }}"
       traefik.http.middlewares.dashboard-strip.stripprefix.prefixes: "/dashboard"
       traefik.http.routers.{{ service_cfg.name }}_web.middlewares: "dashboard-strip,{{ service_cfg.name }}_web-auth"
