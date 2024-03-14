@@ -7,10 +7,9 @@
 x-labels: &base_labels
 {% if service_cfg.traefik == true %}
       traefik.enable: "true"
-      traefik.docker.network: "traefik_default"
+      traefik.docker.network: "proxy_net"
       traefik.http.services.{{ service_cfg.name }}.loadbalancer.server.port: "{{ service_cfg.port }}"
       traefik.http.routers.{{ service_cfg.name }}_web.EntryPoints: "web-secure"
-#     traefik.http.routers.{{ service_cfg.name }}_web.rule: "Host(`{{ service_cfg.domain }}`)"
 {% if service_cfg.external is not defined or service_cfg.external == false %}
       traefik.http.routers.{{ service_cfg.name }}_web.middlewares: "internal-ips-only@file"
 {% endif %}
@@ -27,7 +26,7 @@ x-labels: &base_labels
 # Reusable default networks configuration to ensure container is part of both
 # the traefik network and the default network of this compose file
 x-networks: &base_networks
-  default:
+# default:
   traefik_net:
     aliases:
       - {{ service_cfg.name }}
@@ -39,6 +38,6 @@ x-networks: &base_networks
 # Access the traefik-network
 networks:
   traefik_net:
-    name: traefik_default
-    external: true
+    name: proxy_net
+    external: {{ service_cfg.external_network }}
 {% endif %}

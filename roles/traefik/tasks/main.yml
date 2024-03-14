@@ -13,6 +13,7 @@
       autoheal: true
       internal_ip_ranges: []
       skip_network_definition: false
+      external_network: false
       subdirs:
         - "dynamic"
 

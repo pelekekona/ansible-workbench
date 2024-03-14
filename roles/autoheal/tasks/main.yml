@@ -8,5 +8,6 @@
       external: false
       watchtower: true
       autoheal: false
+      external_network: true
       telegram_bot:
         enabled: false

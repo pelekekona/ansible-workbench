@@ -11,11 +11,12 @@
       watchtower: true
       autoheal: true
       skip_network_definition: false
+      external_network: true
       subdirs: ["workdir", "confdir"]
 
 - block:
   - name: "Get the ip of {{ service_cfg.name }}"
-    command: "docker inspect   -f '{{ '{{' }}(index .NetworkSettings.Networks \"traefik_default\").IPAddress{{ '}}' }}' {{ service_cfg.name }}"
+    command: "docker inspect   -f '{{ '{{' }}(index .NetworkSettings.Networks \"proxy_net\").IPAddress{{ '}}' }}' {{ service_cfg.name }}"
     register: command_output
   - name: "Save ip in a variable"
     ansible.builtin.set_fact:
