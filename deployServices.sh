@@ -6,3 +6,4 @@
   pipenv run ansible-playbook watchtower.yml -i hosts
   pipenv run ansible-playbook autoheal.yml -i hosts
   pipenv run ansible-playbook portainer.yml -i hosts
+  pipenv run ansible-playbook docs.yml -i hosts

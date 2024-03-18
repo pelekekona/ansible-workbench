@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  docs:
+    container_name: "{{ service_cfg.name }}"
+    image: "ghcr.io/pelekekona/mkdocs"
+    restart: unless-stopped
+
+    labels:
+      << : *base_labels
+#     Routing
+      traefik.http.routers.{{ service_cfg.name }}_web.rule: "Host(`{{ service_cfg.domain }}`) && PathPrefix(`/{{ service_cfg.name }}`)"
+      traefik.http.routers.{{ service_cfg.name }}_web.service: "{{ service_cfg.name }}"
+
+    networks: *base_networks

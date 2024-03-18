@@ -27,3 +27,8 @@ autoheal:
     enabled: false
     token: ""
     channel_id: ""
+
+docs:
+  name: docs
+  directory: "{{ docker_dir }}/docs"
+

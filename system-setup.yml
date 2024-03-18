@@ -15,3 +15,6 @@
     - role: portainer
       vars:
         service_cfg: "{{ portainer }}"
+    - role: docs
+      vars:
+        service_cfg: "{{ docs }}"

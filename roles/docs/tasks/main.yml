@@ -1,0 +1,13 @@
+- ansible.builtin.import_role:
+    name: compose_hull
+  vars:
+    service_defaults:
+      directory: "{{ docker_dir }}/docs"
+      name: docs
+      domain: "tohus.dnshome.de"
+      port: 80
+      traefik: true
+      external: true
+      watchtower: true
+      autoheal: true
+      external_network: true

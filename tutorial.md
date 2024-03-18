@@ -11,6 +11,7 @@
     - [Templates anpassen](#templates-anpassen)
   - [Playbooks](#playbooks)
     - [Initiale Installation](#initiale-installation)
+    - [Docker-Dienst hinzufügen](#docker-dienst-hinzufügen)
     - [Docker-Dienste installieren](#docker-dienste-installieren)
   - [Services direkt auf dem Host starten und stoppen](#services-direkt-auf-dem-host-starten-und-stoppen)
   - [Services im Browser testen](#services-im-browser-testen)
@@ -19,6 +20,7 @@
     - [.../portainer/docker-compose.yml](#portainerdocker-composeyml)
     - [.../autoheal/docker-compose.yml](#autohealdocker-composeyml)
     - [.../watchtower/docker-compose.yml](#watchtowerdocker-composeyml)
+    - [.../docs/docker-compose.yml](#docsdocker-composeyml)
   - [Verweise](#verweise)
     - [Dokumentation](#dokumentation)
     - [Docker-Tutorials](#docker-tutorials)
@@ -220,6 +222,18 @@ andy@raspberrypi:~ $ docker ps
 CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
 ```
 
+### Docker-Dienst hinzufügen
+
+Um einen weiteren Dienst zu installieren, wird ein neues Playbook hinzugefügt. Hier eine Liste der neuen bzw. geänderten Dateien:
+
+- Neues Playbook-Verzeichnis **roles/docs**
+  - [roles/docs/tasks/main.yml](roles/docs/tasks/main.yml)
+  - [roles/docs/docker-compose.yml.j2](roles/docs/docker-compose.yml.j2)
+  - [roles/docs/README.md](roles/docs/README.md)
+- [docs.yml](docs.yml)
+- [group_vars/all.yml](group_vars/all.yml)
+- [system-setup.yml](system-setup.yml)
+
 ### Docker-Dienste installieren
 
 Die Playbooks aller Services können gemeinsam über ein System-Playbook ausgeführt werden.
@@ -239,6 +253,7 @@ Werden die Playbooks einzeln ausgeführt, kommt es zu keinen Fehlermeldungen.
 - [Playbook: watchtower.yml](watchtower.yml)
 - [Playbook: autoheal.yml](autoheal.yml)
 - [Playbook: portainer.yml](portainer.yml)
+- [Playbook: docs.yml](docs.yml)
 
 Die Playbooks können alternativ über ein Skript gestartet werden:
 
@@ -247,6 +262,7 @@ andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook traefik.yml -i ho
 andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook watchtower.yml -i hosts
 andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook autoheal.yml -i hosts
 andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook portainer.yml -i hosts
+andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook docs.yml -i hosts
 ```
 
 ## Services direkt auf dem Host starten und stoppen
@@ -254,20 +270,24 @@ andy@mars:~/git/ansible-workbench$ pipenv run ansible-playbook portainer.yml -i 
 Alternativ dazu können die Services auch direkt auf dem Host gestartet werden. Da für jeden Service eine eigene Docker-Compose-Datei generiert wurde, muss auch jeder Service für sich gestartet werden.
 
 ```shell
+# Status
+clear
+docker ps -a
+docker network ls
+
 # Services starten
-docker compose \
-	-f traefik/docker-compose.yml \
-	-f watchtower/docker-compose.yml \
-	-f autoheal/docker-compose.yml \
-	-f portainer/docker-compose.yml \
-	up -d
+docker compose -f ./traefik/docker-compose.yml up -d
+docker compose -f ./portainer/docker-compose.yml up -d
+docker compose -f ./autoheal/docker-compose.yml up -d
+docker compose -f ./watchtower/docker-compose.yml up -d
+docker compose -f ./docs/docker-compose.yml up -d
+
 # Services stoppen
-docker compose \
-	-f portainer/docker-compose.yml \
-	-f autoheal/docker-compose.yml \
-	-f watchtower/docker-compose.yml \
-	-f traefik/docker-compose.yml \
-	down
+docker compose -f docs/docker-compose.yml down
+docker compose -f portainer/docker-compose.yml down
+docker compose -f autoheal/docker-compose.yml down
+docker compose -f watchtower/docker-compose.yml down
+docker compose -f traefik/docker-compose.yml down
 ```
 
 ## Services im Browser testen
@@ -276,6 +296,7 @@ docker compose \
 - [API, Rohdaten](https://tohus.dnshome.de/api/rawdata)
 - [API, Version](https://tohus.dnshome.de/api/version)
 - [Portainer](https://tohus.dnshome.de/portainer)
+- [Dokumentation](https://tohus.dnshome.de/docs)
 
 ## Generierte Artefakte
 
@@ -284,14 +305,8 @@ Die folgenden Docker-Compose-Dateien werden auf den **managed nodes** generiert:
 ### .../traefik/docker-compose.yml
 
 ```yaml
-#
 # Ansible managed
-#
 
-# Labels for Traefik, Watchtower, and Autoheal
-#   (docker compose ignores fields that start with `x-`. So we can use them to
-#    define reusable fragments with `&anchors`. See:
-#    https://docs.docker.com/compose/compose-file/11-extension/ )
 x-labels: &base_labels
       traefik.enable: "true"
       traefik.docker.network: "proxy_net"
@@ -302,15 +317,11 @@ x-labels: &base_labels
       com.centurylinklabs.watchtower.enable: "true"
       autoheal: "true"
 
-# Reusable default networks configuration to ensure container is part of both
-# the traefik network and the default network of this compose file
 x-networks: &base_networks
-# default:
   traefik_net:
     aliases:
       - traefik
 
-# The main Docker Compose file
 version: "3.8"
 
 services:
@@ -347,7 +358,6 @@ services:
       - "host.docker.internal:host-gateway"
     networks: *base_networks
 
-# Access the traefik-network
 networks:
   traefik_net:
     name: proxy_net
@@ -357,14 +367,8 @@ networks:
 ### .../portainer/docker-compose.yml
 
 ```yaml
-#
 # Ansible managed
-#
 
-# Labels for Traefik, Watchtower, and Autoheal
-#   (docker compose ignores fields that start with `x-`. So we can use them to
-#    define reusable fragments with `&anchors`. See:
-#    https://docs.docker.com/compose/compose-file/11-extension/ )
 x-labels: &base_labels
       traefik.enable: "true"
       traefik.docker.network: "proxy_net"
@@ -375,15 +379,11 @@ x-labels: &base_labels
       com.centurylinklabs.watchtower.enable: "true"
       autoheal: "true"
 
-# Reusable default networks configuration to ensure container is part of both
-# the traefik network and the default network of this compose file
 x-networks: &base_networks
-# default:
   traefik_net:
     aliases:
       - portainer
 
-# The main Docker Compose file
 version: "3.8"
 
 services:
@@ -408,7 +408,6 @@ services:
 
     networks: *base_networks
 
-# Access the traefik-network
 networks:
   traefik_net:
     name: proxy_net
@@ -418,26 +417,16 @@ networks:
 ### .../autoheal/docker-compose.yml
 
 ```yaml
-#
 # Ansible managed
-#
 
-# Labels for Traefik, Watchtower, and Autoheal
-#   (docker compose ignores fields that start with `x-`. So we can use them to
-#    define reusable fragments with `&anchors`. See:
-#    https://docs.docker.com/compose/compose-file/11-extension/ )
 x-labels: &base_labels
       com.centurylinklabs.watchtower.enable: "true"
 
-# Reusable default networks configuration to ensure container is part of both
-# the traefik network and the default network of this compose file
 x-networks: &base_networks
-# default:
   traefik_net:
     aliases:
       - autoheal
 
-# The main Docker Compose file
 version: "3.8"
 
 services:
@@ -454,7 +443,6 @@ services:
     labels: *base_labels
     networks: *base_networks
 
-# Access the traefik-network
 networks:
   traefik_net:
     name: proxy_net
@@ -464,27 +452,17 @@ networks:
 ### .../watchtower/docker-compose.yml
 
 ```yaml
-#
 # Ansible managed
-#
 
-# Labels for Traefik, Watchtower, and Autoheal
-#   (docker compose ignores fields that start with `x-`. So we can use them to
-#    define reusable fragments with `&anchors`. See:
-#    https://docs.docker.com/compose/compose-file/11-extension/ )
 x-labels: &base_labels
       com.centurylinklabs.watchtower.enable: "true"
       autoheal: "true"
 
-# Reusable default networks configuration to ensure container is part of both
-# the traefik network and the default network of this compose file
 x-networks: &base_networks
-# default:
   traefik_net:
     aliases:
       - watchtower
 
-# The main Docker Compose file
 version: "3.8"
 
 services:
@@ -493,9 +471,9 @@ services:
     image: "containrrr/watchtower:latest"
     restart: unless-stopped
     environment:
-      TZ: "Europe/Berlin"             # https://containrrr.dev/watchtower/arguments/#time_zone
+      TZ: "Europe/Berlin"              # https://containrrr.dev/watchtower/arguments/#time_zone
       WATCHTOWER_CLEANUP: "true"       # https://containrrr.dev/watchtower/arguments/#cleanup
-      WATCHTOWER_LABEL_ENABLE: "true"  # https://containrrr.dev/watchtower/arguments/#filter_by_enable_label
+      WATCHTOWER_LABEL_ENABLE: "true"  # https://containrrr.dev/watchtower/arguments#filter_by_enable_label
       WATCHTOWER_INCLUDE_RESTARTING: "true"
       WATCHTOWER_INCLUDE_STOPPED: "true"
       WATCHTOWER_REVIVE_STOPPED: "true"
@@ -509,7 +487,48 @@ services:
     labels: *base_labels
     networks: *base_networks
 
-# Access the traefik-network
+networks:
+  traefik_net:
+    name: proxy_net
+    external: True
+```
+
+### .../docs/docker-compose.yml
+
+```yaml
+# Ansible managed
+
+x-labels: &base_labels
+      traefik.enable: "true"
+      traefik.docker.network: "proxy_net"
+      traefik.http.services.docs.loadbalancer.server.port: "80"
+      traefik.http.routers.docs_web.EntryPoints: "web-secure"
+      traefik.http.routers.docs_web.tls: "true"
+      traefik.http.routers.docs_web.tls.certresolver: "default"
+      com.centurylinklabs.watchtower.enable: "true"
+      autoheal: "true"
+
+x-networks: &base_networks
+  traefik_net:
+    aliases:
+      - docs
+
+version: "3.8"
+
+services:
+  docs:
+    container_name: "docs"
+    image: "ghcr.io/pelekekona/mkdocs"
+    restart: unless-stopped
+
+    labels:
+      << : *base_labels
+#     Routing
+      traefik.http.routers.docs_web.rule: "Host(`tohus.dnshome.de`) && PathPrefix(`/docs`)"
+      traefik.http.routers.docs_web.service: "docs"
+
+    networks: *base_networks
+
 networks:
   traefik_net:
     name: proxy_net

@@ -1,0 +1,6 @@
+- hosts: server
+  become: true
+  roles:
+    - role: docs
+      vars:
+        service_cfg: "{{ docs }}"
