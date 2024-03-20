@@ -5,7 +5,9 @@
     - [Ansible installieren](#ansible-installieren)
     - [Docker-Rolle installieren](#docker-rolle-installieren)
   - [Projekt anpassen](#projekt-anpassen)
-    - [Inventory konfigurieren](#inventory-konfigurieren)
+    - [Kennwort für Ansible Vault](#kennwort-für-ansible-vault)
+    - [Variablen der **control nodes** festlegen](#variablen-der-control-nodes-festlegen)
+    - [Variablen der **Dienste** festlegen](#variablen-der-dienste-festlegen)
     - [Inventory testen](#inventory-testen)
     - [Docker-Rolle konfigurieren](#docker-rolle-konfigurieren)
     - [Templates anpassen](#templates-anpassen)
@@ -51,7 +53,7 @@ Wenn die Infrastruktur am Ende automatisch erzeugt und bereitgestellt werden kan
 
 ### Raspberry Pi vorbereiten
 
-Der bereits vorhandene Raspberry Pi soll der **managed node** sein, auf dem eine Docker-Infrastruktur installiert werden soll. Der Raspi muss per ssh vom **control node** erreichbar sein.
+Der als **managed node** zu installierende Raspberry Pi kann beispielsweise ein frisch installiertes Betriebssystem verwenden. Er muss per ssh vom **control node** aus erreichbar sein.
 
 ## Control node
 
@@ -79,7 +81,7 @@ ansible = "*"
 python_version = "3.10"
 ```
 
-Zunächst werden die Pakete **passlib** und **ansible** in **Pipfile**  installiert:
+Zunächst werden die in **Pipfile** aufgeführten Pakete **passlib** und **ansible** installiert:
 
 ```shell
 andy@mars:~/git/ansible-workbench$ pipenv install
@@ -106,11 +108,23 @@ andy@mars:~/git/ansible-workbench$ ln -s ~/.ansible/ .ansible
 
 ## Projekt anpassen
 
-### Inventory konfigurieren
+### Kennwort für Ansible Vault
+
+Die Konfigurationsdatei mit dem Kennwort zur Verschlüsselung von Variablen wird außerhalb des Projekts im Home-Verzeichnis gespeichert, um sie von der Synchronisation mit dem Repository auszuschließen. Der Pfad zu dieser Datei wird in der Ansible-Konfiguration hinterlegt:
+
+- [ansible.cfg](ansible.cfg)
+
+```
+[defaults]
+inventory = hosts
+vault_password_file = ~/.ansibleVaultPass
+```
+
+### Variablen der **control nodes** festlegen
 
 - [hosts](hosts)
 
-Hier werden die Namen oder statischen IP-Adressen der **control nodes** hinterlegt:
+Hier werden die Namen oder statischen IP-Adressen der **control nodes** hinterlegt und Variablen festgelegt, die für alle **control nodes** gelten:
 
 ```shell
 [server]
@@ -119,8 +133,7 @@ raspberrypi
 [server:vars]
 ansible_become_method=sudo
 ```
-
-Passend dazu wird im Verzeichnis **host_vars** eine Konfigurationsdatei mit dem Namen bzw. der statischen IP-Adresse pro **control node** angelegt:
+Variablen, die spezifisch für einen **control node** sind, werden in einer Datei im Verzeichnis **host_vars** hinterlegt, die als Namen den Hostnamen bzw. dessen statische IP-Adresse erhält:
 
 - [host_vars/raspberrypi.yml](host_vars/raspberrypi.yml)
 
@@ -129,7 +142,7 @@ ansible_user: andy
 admin:
   name: andy
   key: "{{ lookup('file', '~/.ssh/home_rsa.pub') }}"
-  email: "andreas.keye@gmail.com"
+  email: "andreas.keye@gmx.com"
 locale: de_DE.UTF-8
 timezone: Europe/Berlin
 docker_dir: "/docker"
@@ -138,6 +151,47 @@ docker_dir: "/docker"
 In der ersten Zeile steht der Benutzername des Ansible-Anwenders. Es folgt der Name des Anwenders auf dem Server. Der kryptographische Schlüssel wird über die Lookup-Funktion in der lokalen SSH-Konfiguration gefunden und in die SSH-Konfiguration des Servers kopiert. Anschließend ist auf dem Server eine passwortlose Anmeldung möglich.
 
 In der letzten Zeile wird das Installationsverzeichnis auf dem Server festgelegt, in das die zu installierenden Dienste kopiert werden sollen.
+
+### Variablen der **Dienste** festlegen
+
+- [group_vars/all/vars](group_vars/all/vars)
+
+```yaml
+...
+traefik:
+  ...
+  http_basic_users: "{{ vault_http_basic_users }}"  # User: admin, Password: RosPtZ23rlWB98qoiEbKsjWcz
+
+portainer:
+  ...
+  admin_password: "{{ vault_admin_password }}"
+
+watchtower:
+  ...
+  http_token: "{{ vault_admin_password }}"
+...
+```
+
+In dieser Konfigurationsdaten werden Kennwörter verwendet, die hier nicht im Klartext sondern nur über **Ansible Vault** verschlüsselt abgelegt werden. Der Verweis auf die verschlüsselten Werte erfolgt mit Jinja2-Templating.
+
+- [group_vars/all/vault](group_vars/all/vault)
+
+Hier ein unverschlüsselter aber unvollständiger Einblick in den Tresor:
+
+```
+vault_admin_password: "..."
+vault_http_basic_users: "..."
+vault_http_token: "..."
+```
+
+Vorzugsweise sollte der Inhalt zunächst vorbereitet werden, um ihn dann in einem Rutsch zu verschlüsseln:
+
+```shell
+# Create vault
+  ansible-vault create group_vars/all/vault
+# Test variables
+  ansible -m debug -a 'var=hostvars[inventory_hostname]' server
+```
 
 ### Inventory testen
 
@@ -554,6 +608,7 @@ networks:
 
   - [How to Use Ansible to Automate Initial Server Setup on Ubuntu](https://www.digitalocean.com/community/tutorials/how-to-use-ansible-to-automate-initial-server-setup-on-ubuntu-20-04)
   - [How to Use Ansible to Install and Set Up Docker on Ubuntu](https://www.digitalocean.com/community/tutorials/how-to-use-ansible-to-install-and-set-up-docker-on-ubuntu-20-04)
+  - [How To Use Ansible Vault to Protect Sensitive Playbook Data](https://www.digitalocean.com/community/tutorials/how-to-use-vault-to-protect-sensitive-ansible-data)
   - []()
 
 ### Traefik-Beispiele

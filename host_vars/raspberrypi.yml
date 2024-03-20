@@ -2,7 +2,7 @@ ansible_user: andy
 admin:
   name: andy
   key: "{{ lookup('file', '~/.ssh/home_rsa.pub') }}"
-  email: "andreas.keye@gmail.com"
+  email: "andreas.keye@gmx.com"
 locale: de_DE.UTF-8
 timezone: Europe/Berlin
 docker_dir: "/docker"

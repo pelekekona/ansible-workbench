@@ -5,19 +5,18 @@ traefik:
   name: traefik
   directory: "{{ docker_dir }}/traefik"
   domain: "tohus.dnshome.de"
-  http_basic_users: "admin:$$apr1$$X/y3j80i$$WCQ6u03uAmH3AGVYsblxg1"  # User: admin, Password: RosPtZ23rlWB98qoiEbKsjWcz
-  # internal_ip_ranges: [192.168.178.20 - 192.168.178.200]
+  http_basic_users: "{{ vault_http_basic_users }}"  # User: admin, Password: RosPtZ23rlWB98qoiEbKsjWcz
 
 portainer:
   name: portainer
   admin_user: "admin"
   directory: "{{ docker_dir }}/portainer"
-  admin_password: "jP4nalPjSva67SXHV4kJCdS67"
+  admin_password: "{{ vault_admin_password }}"
 
 watchtower:
   name: watchtower
   directory: "{{ docker_dir }}/watchtower"
-  http_token: "jP4nalPjSva67SXHV4kJCdS67"
+  http_token: "{{ vault_admin_password }}"
   telegram_bot_token: ""
 
 autoheal:
