@@ -1,4 +1,4 @@
-- [Infrastructure as code (IaC)](#infrastructure-as-code-iac)
+- [Infrastructure as Code (IaC)](#infrastructure-as-code-iac)
   - [Managed node](#managed-node)
     - [Raspberry Pi vorbereiten](#raspberry-pi-vorbereiten)
   - [Control node](#control-node)
@@ -29,7 +29,7 @@
     - [Ansible-Tutorials](#ansible-tutorials)
     - [Traefik-Beispiele](#traefik-beispiele)
 
-# Infrastructure as code (IaC)
+# Infrastructure as Code (IaC)
 
 Diese Dokumentation behandelt die Automatisierung von Verwaltungstätigkeiten - Installieren, Kopieren, Patchen - mit **Ansible**. Anweisungen werden auf einem der Verwaltung dienenden Server (ansible control node) reproduzierbar für eine beliebige Anzahl von Servern (managed nodes) ausgeführt. Bei dem **ansible control node** kann es sich um den Arbeitsplatzrechner als auch um einen aus der Ferne zu administrierenden Server handeln.
 
@@ -133,6 +133,7 @@ raspberrypi
 [server:vars]
 ansible_become_method=sudo
 ```
+
 Variablen, die spezifisch für einen **control node** sind, werden in einer Datei im Verzeichnis **host_vars** hinterlegt, die als Namen den Hostnamen bzw. dessen statische IP-Adresse erhält:
 
 - [host_vars/raspberrypi.yml](host_vars/raspberrypi.yml)
@@ -172,7 +173,7 @@ watchtower:
 ...
 ```
 
-In dieser Konfigurationsdaten werden Kennwörter verwendet, die hier nicht im Klartext sondern nur über **Ansible Vault** verschlüsselt abgelegt werden. Der Verweis auf die verschlüsselten Werte erfolgt mit Jinja2-Templating.
+In diesen Konfigurationsdaten werden Kennwörter verwendet, die hier nicht im Klartext sondern nur über **Ansible Vault** verschlüsselt abgelegt werden. Der Verweis auf die verschlüsselten Werte erfolgt mit Jinja2-Templating.
 
 - [group_vars/all/vault](group_vars/all/vault)
 
@@ -201,6 +202,7 @@ Die für eine automatisierte Installation hinterlegten Server können wie folgt 
 andy@mars:~/git/ansible-workbench$ ansible-inventory -i hosts --list
 andy@mars:~/git/ansible-workbench$ ansible server -m ping -i hosts
 ```
+
 ### Docker-Rolle konfigurieren
 
 - [~/.ansible/roles/geerlingguy.docker/defaults/main.yml](.ansible/roles/geerlingguy.docker/defaults/main.yml)
