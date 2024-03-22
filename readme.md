@@ -652,7 +652,7 @@ docs:
 ...
 ```
 
-Verschlüsselte Werte wreden im **Ansible Vault** abgelegt:
+Verschlüsselte Werte werden im **Ansible Vault** abgelegt:
 
 - [group_vars/all/vault](group_vars/all/vault)
 
@@ -669,9 +669,7 @@ Das Playbook für Generierung und Installation der Docker-Konfiguration auf dem 
         service_cfg: "{{ docs }}"
 ```
 
-Unter der Haube erzeugt die Rolle **compose_hull** 
-
-Die auf dem **managed node** erzeugte Docker-Konfigurationsdatei **docker-compose.yml** sieht wie folgt aus:
+Unter der Haube erzeugt die Rolle **compose_hull** anhand der bereitgestellten Ressourcen und Parameter auf dem **managed node** die Docker-Konfigurationsdatei **docker-compose.yml** für den neuen Dienst:
 
 ```yaml
 # Ansible managed
