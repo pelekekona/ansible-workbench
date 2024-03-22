@@ -22,7 +22,7 @@
     - [.../portainer/docker-compose.yml](#portainerdocker-composeyml)
     - [.../autoheal/docker-compose.yml](#autohealdocker-composeyml)
     - [.../watchtower/docker-compose.yml](#watchtowerdocker-composeyml)
-    - [.../docs/docker-compose.yml](#docsdocker-composeyml)
+  - [Hinzufügen eines eigenen Dienstes](#hinzufügen-eines-eigenen-dienstes)
   - [Verweise](#verweise)
     - [Dokumentation](#dokumentation)
     - [Docker-Tutorials](#docker-tutorials)
@@ -549,7 +549,129 @@ networks:
     external: True
 ```
 
-### .../docs/docker-compose.yml
+## Hinzufügen eines eigenen Dienstes
+
+Ausgangspunkt ist der bisher verwendete Docker-Service zur **Projekt-Dokumentation** , für den (wie auch für alle anderen Dienste) zunächst auf dem Reverse Proxy **swag** eine Proxy-Konfiguration aktiviert werden muss:
+
+```shell
+location /docs {
+    return 301 $scheme://$host/docs/;
+}
+
+location ^~ /docs/ {
+    # enable the next two lines for http auth
+    #auth_basic "Restricted";
+    #auth_basic_user_file /config/nginx/.htpasswd;
+
+    # enable for ldap auth (requires ldap-server.conf in the server block)
+    #include /config/nginx/ldap-location.conf;
+
+    # enable for Authelia (requires authelia-server.conf in the server block)
+    include /config/nginx/authelia-location.conf;
+
+    # enable for Authentik (requires authentik-server.conf in the server block)
+    #include /config/nginx/authentik-location.conf;
+
+    include /config/nginx/proxy.conf;
+    include /config/nginx/resolver.conf;
+    set $upstream_proto http;
+    set $upstream_app docs;
+    set $upstream_port 80;
+    proxy_pass $upstream_proto://$upstream_app:$upstream_port;
+}
+```
+
+Bei Verwendung des Reverse Proxy **Traefik** ist keine zusätzliche Proxy-Konfiguration erforderlich. Umgestellt werden muss nur die bisherige Docker-Konfiguration:
+
+```yaml
+  docs:
+    image: ghcr.io/pelekekona/mkdocs:latest
+    container_name: docs
+    restart: unless-stopped
+    networks:
+      default:
+        ipv4_address: 172.22.0.6
+    ports:
+      - 8000:80
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+```
+
+Aus dieser Docker-Konfiguration wird ein Jinja2-Template abgeleitet, das im neu zu erstellenden Ansible-Playbook verwendet wird:
+
+- [roles/docs/docker-compose.yml.j2](roles/docs/docker-compose.yml.j2)
+
+```Jinja
+version: "3.8"
+
+services:
+  docs:
+    container_name: "{{ service_cfg.name }}"
+    image: "ghcr.io/pelekekona/mkdocs"
+    restart: unless-stopped
+
+    labels:
+      << : *base_labels
+#     Routing
+      traefik.http.routers.{{ service_cfg.name }}_web.rule: "Host(`{{ service_cfg.domain }}`) && PathPrefix(`/{{ service_cfg.name }}`)"
+      traefik.http.routers.{{ service_cfg.name }}_web.service: "{{ service_cfg.name }}"
+
+    networks: *base_networks
+```
+
+Über die beiden YAML-Referenzen ***base_labels** und ***base_networks** werden weitere Labels und das Proxy-Netzwerk im Master-Template referenziert, in das der neue Dienst eingebucht wird.
+Die in diesem und dem Master-Template referenzierten Variablen werden in der folgenden Konfiguratonsdatei festgelegt:
+
+- [roles/docs/tasks/main.yml](roles/docs/tasks/main.yml)
+
+```yaml
+- ansible.builtin.import_role:
+    name: compose_hull
+  vars:
+    service_defaults:
+      directory: "{{ docker_dir }}/docs"
+      name: docs
+      domain: "tohus.dnshome.de"
+      port: 80
+      traefik: true
+      external: true
+      watchtower: true
+      autoheal: true
+      external_network: true
+```
+
+Weiter Variablen werden unter den Gruppenvariablen abgelegt:
+
+- [group_vars/all/vars](group_vars/all/vars)
+
+```yaml
+...
+docs:
+  name: docs
+  directory: "{{ docker_dir }}/docs"
+...
+```
+
+Verschlüsselte Werte wreden im **Ansible Vault** abgelegt:
+
+- [group_vars/all/vault](group_vars/all/vault)
+
+Das Playbook für Generierung und Installation der Docker-Konfiguration auf dem **manged node** sieht wie folgt aus:
+
+[Playbook: docs.yml](docs.yml)
+
+```yaml
+- hosts: server
+  become: true
+  roles:
+    - role: docs
+      vars:
+        service_cfg: "{{ docs }}"
+```
+
+Unter der Haube erzeugt die Rolle **compose_hull** 
+
+Die auf dem **managed node** erzeugte Docker-Konfigurationsdatei **docker-compose.yml** sieht wie folgt aus:
 
 ```yaml
 # Ansible managed
