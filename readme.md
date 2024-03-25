@@ -271,10 +271,10 @@ andy@raspberrypi:~ $ groups
 andy adm dialout cdrom sudo audio video plugdev games users input render netdev lpadmin gpio i2c spi docker
 # Docker-Installation verifizieren
 andy@raspberrypi:~ $ docker -v
-Docker version 25.0.1, build 29cf629
+Docker version 26.0.0, build 2ae903e
 $ docker compose version
-Docker Compose version v2.24.2
-andy@raspberrypi:~ $ docker ps
+Docker Compose version v2.25.0
+andy@raspberrypi:~ $ docker ps -a
 CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
 ```
 
@@ -378,8 +378,6 @@ x-networks: &base_networks
     aliases:
       - traefik
 
-version: "3.8"
-
 services:
   traefik:
     image: "traefik"
@@ -440,8 +438,6 @@ x-networks: &base_networks
     aliases:
       - portainer
 
-version: "3.8"
-
 services:
   portainer:
     container_name: "portainer"
@@ -483,8 +479,6 @@ x-networks: &base_networks
     aliases:
       - autoheal
 
-version: "3.8"
-
 services:
   autoheal:
     container_name: "autoheal"
@@ -518,8 +512,6 @@ x-networks: &base_networks
   traefik_net:
     aliases:
       - watchtower
-
-version: "3.8"
 
 services:
   watchtower:
@@ -602,8 +594,6 @@ Aus dieser Docker-Konfiguration wird ein Jinja2-Template abgeleitet, das im neu 
 - [roles/docs/docker-compose.yml.j2](roles/docs/docker-compose.yml.j2)
 
 ```Jinja
-version: "3.8"
-
 services:
   docs:
     container_name: "{{ service_cfg.name }}"
@@ -688,8 +678,6 @@ x-networks: &base_networks
   traefik_net:
     aliases:
       - docs
-
-version: "3.8"
 
 services:
   docs:
